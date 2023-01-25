@@ -4,11 +4,24 @@
 +DotProduct
 +MatrixProduct
 +Transpose
--Determinant
--Ad-joint
--Inverse
++Determinant
++Ad-joint
++Inverse
 +GenerateIdentity
 +IsSquareMatrix
 +IsZeroMatrix
 +equal()
 +toString()
+
+LATER
+Row/Column Echelon
+Reduced Row/Column Echelon
+Augment matrix (Ax=b)(A|b)
+isIdentity
+isUpperTriangle
+isLowerTriangle
+isDiagonalMatrix
+isScalarMatrix
+isSymmetric
+isSkewSymmetric
+isSingular

@@ -56,16 +56,57 @@ public class Matrix {
         double[][] array = new double[left.rowCount()][right.columnCount()];
         for (int i = 0; i < array.length; i++)
             for (int j = 0; j < array[0].length; j++)
-                array[i][j] = dotProduct(transpose(left.getRow(i)),right.getColumn(j));
+                array[i][j] = dotProduct(left.getRow(i).transpose(), right.getColumn(j));
         return new Matrix(array);
     }
 
-    public static Matrix transpose(Matrix matrix) {
-        exceptionNull(matrix);
-        double[][] array = new double[matrix.columnCount()][matrix.rowCount()];
+    public Matrix transpose() {
+        double[][] array = new double[columnCount()][rowCount()];
         for (int i = 0; i < array.length; i++)
             for (int j = 0; j < array[0].length; j++)
-                array[i][j] = matrix.array[j][i];
+                array[i][j] = this.array[j][i];
+        return new Matrix(array);
+    }
+
+    public double determinant() {
+        if (!isSquareMatrix())
+            throw new IllegalArgumentException("Square matrix is required for Determinant!");
+        if (rowCount() == 1)
+            return array[0][0];
+        double result = 0;
+        for (int i = 0; i < array[0].length; i++)
+            result += array[0][i] * cofactor(0, i);
+        return result;
+    }
+
+    public Matrix adjoint() {
+        if (!isSquareMatrix())
+            throw new IllegalArgumentException("Square matrix is required for Adjoint!");
+        double[][] array = new double[rowCount()][rowCount()];
+        for (int i = 0; i < rowCount(); i++)
+            for (int j = 0; j < rowCount(); j++)
+                array[i][j] = cofactor(i, j);
+        return new Matrix(array).transpose();
+    }
+
+    public Matrix inverse() {
+        if (!isSquareMatrix())
+            throw new IllegalArgumentException("Square matrix is required for Inverse!");
+        double determinant = determinant();
+        if (determinant == 0)
+            throw new IllegalArgumentException("Singular matrix are not invertible!");
+        return scalarProduct(adjoint(), 1/determinant);
+    }
+
+    private double cofactor(int row, int column) {
+        return cofactorMatrix(row, column).determinant() * ((row + column) % 2 == 0 ? 1 : -1);
+    }
+
+    private Matrix cofactorMatrix(int row, int column) {
+        double[][] array = new double[rowCount() - 1][columnCount() - 1];
+        for (int i = 0; i < rowCount() - 1; i++)
+            for (int j = 0; j < columnCount() - 1; j++)
+                array[i][j] = this.array[i < row ? i : i + 1][j < column ? j : j + 1];
         return new Matrix(array);
     }
 
@@ -85,7 +126,7 @@ public class Matrix {
 
     // --------------------Generation--------------------------- //
 
-    public static Matrix generateIdentity(int n) {
+    public static Matrix generateIdentityMatrix(int n) {
         if (n < 1)
             throw new IllegalArgumentException("n must be 1 or greater value!");
         double[][] array = new double[n][n];
@@ -112,7 +153,7 @@ public class Matrix {
         exceptionUnequalStructure(right, left);
     }
 
-    // --------------------Get Attributes--------------------------- //
+    // --------------------Get Attributes/Values--------------------------- //
 
     public Matrix getColumn(int column) {
         if (column < 0)
@@ -129,6 +170,21 @@ public class Matrix {
         double[][] array = new double[1][columnCount()];
         for (int i = 0; i < columnCount(); i++)
             array[0][i] = this.array[row][i];
+        return new Matrix(array);
+    }
+
+    public Matrix subMatrix(int offsetRow, int offsetColumn, int rows, int columns) {
+        if (offsetRow < 0 || offsetColumn < 0)
+            throw new IllegalArgumentException("Invalid offsets!");
+        if (rows < 1 || columns < 1)
+            throw new IllegalArgumentException("Invalid rows or columns!");
+        if (offsetRow + rows > rowCount() || offsetColumn + columns > columnCount())
+            throw new IllegalArgumentException("Out of range!");
+
+        double[][] array = new double[rows][columns];
+        for (int i = 0; i < rows; i++)
+            for (int j = 0; j < columns; j++)
+                array[i][j] = this.array[offsetRow + i][offsetColumn + j];
         return new Matrix(array);
     }
 
@@ -158,7 +214,7 @@ public class Matrix {
 
     // --------------------Console Display--------------------------- //
 
-    public String doubleString(double value, int space, boolean negativeSpace) {
+    private String doubleString(double value, int space, boolean negativeSpace) {
         var builder = new StringBuilder();
         if (negativeSpace && value >= 0)
             builder.append(" ");
@@ -169,7 +225,7 @@ public class Matrix {
         int size = builder.length();
         for (int i = size; i < space; ++i)
             builder.append(" ");
-        return builder.toString().substring(0, space);
+        return builder.substring(0, space);
     }
 
     @Override
@@ -189,7 +245,7 @@ public class Matrix {
         for (double[] data : array) {
             builder.append("[  ");
             for (double value : data)
-                builder.append(doubleString(value, maxDecimal + 1 + Math.min(maxFraction - 2, 2), negativeSpace)).append(" ");
+                builder.append(doubleString(value, maxDecimal + 2 + Math.min(maxFraction - 2, 4), negativeSpace)).append(" ");
             builder.append("]\n");
         }
         return builder.toString();
