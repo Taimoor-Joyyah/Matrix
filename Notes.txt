@@ -1,0 +1,14 @@
++Addition
++Subtraction
++ScalarProduct
++DotProduct
++MatrixProduct
++Transpose
+-Determinant
+-Ad-joint
+-Inverse
++GenerateIdentity
++IsSquareMatrix
++IsZeroMatrix
++equal()
++toString()
