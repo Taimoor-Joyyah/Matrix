@@ -56,7 +56,7 @@ public class Matrix {
         double[][] array = new double[left.rowCount()][right.columnCount()];
         for (int i = 0; i < array.length; i++)
             for (int j = 0; j < array[0].length; j++)
-                array[i][j] = dotProduct(left.getRow(i).transpose(), right.getColumn(j));
+                array[i][j] = dotProduct(left.getRowMatrix(i).transpose(), right.getColumnMatrix(j));
         return new Matrix(array);
     }
 
@@ -95,7 +95,7 @@ public class Matrix {
         double determinant = determinant();
         if (determinant == 0)
             throw new IllegalArgumentException("Singular matrix are not invertible!");
-        return scalarProduct(adjoint(), 1/determinant);
+        return scalarProduct(adjoint(), 1 / determinant);
     }
 
     private double cofactor(int row, int column) {
@@ -117,11 +117,87 @@ public class Matrix {
     }
 
     public boolean isZeroMatrix() {
-        for (double[] row : array)
-            for (double value : row)
-                if (value != 0)
+        for (int i = 0; i < rowCount(); i++)
+            for (int j = 0; j < columnCount(); j++)
+                if (array[i][j] != 0)
                     return false;
         return true;
+    }
+
+    public boolean isSingularMatrix() {
+        return determinant() == 0;
+    }
+
+    public boolean isUpperTriangleMatrix() {
+        if (!isSquareMatrix())
+            return false;
+        for (int i = 1; i < rowCount(); i++)
+            for (int j = 0; j < i; j++)
+                if (array[i][j] != 0)
+                    return false;
+        return true;
+    }
+
+    public boolean isLowerTriangleMatrix() {
+        if (!isSquareMatrix())
+            return false;
+        for (int i = 0; i < rowCount(); i++)
+            for (int j = i + 1; j < columnCount(); j++)
+                if (array[i][j] != 0)
+                    return false;
+        return true;
+    }
+
+    public boolean isDiagonalMatrix() {
+        return isUpperTriangleMatrix() && isLowerTriangleMatrix();
+    }
+
+    public boolean isIdentityMatrix() {
+        if (!isDiagonalMatrix())
+            return false;
+        for (int i = 0; i < rowCount(); i++)
+            if (array[i][i] != 1)
+                return false;
+        return true;
+    }
+
+    public boolean isScalarMatrix() {
+        if (!isDiagonalMatrix())
+            return false;
+        for (int i = 1; i < rowCount(); i++)
+            if (array[i][i] != array[0][0])
+                return false;
+        return true;
+    }
+
+    public boolean isSymmetricMatrix() {
+        return equals(this, transpose());
+    }
+
+    public boolean isSkewSymmetricMatrix() {
+        return equals(this, scalarProduct(transpose(), -1));
+    }
+
+    public boolean isReducedEchelonForm() {
+        double[] leadingRows = new double[rowCount()];
+        Arrays.fill(leadingRows, -1);
+        for (int i = 0; i < rowCount(); i++) {
+            for (int j = 0; j < columnCount(); j++) {
+                if (array[i][j] == 1)
+                    if (i == 0 || (leadingRows[i - 1] > -1 && leadingRows[i - 1] < j)) {
+                        leadingRows[i] = j;
+                        break;
+                    } else
+                        return false;
+                else if (array[i][j] != 0)
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean isEchelonForm() {
+        return isReducedEchelonForm() && !getRowMatrix(rowCount() - 1).isZeroMatrix();
     }
 
     // --------------------Generation--------------------------- //
@@ -155,7 +231,7 @@ public class Matrix {
 
     // --------------------Get Attributes/Values--------------------------- //
 
-    public Matrix getColumn(int column) {
+    public Matrix getColumnMatrix(int column) {
         if (column < 0)
             throw new IllegalArgumentException("Column must be 0 or greater!");
         double[][] array = new double[rowCount()][1];
@@ -164,13 +240,31 @@ public class Matrix {
         return new Matrix(array);
     }
 
-    public Matrix getRow(int row) {
+    public double[] getColumn(int column) {
+        if (column < 0)
+            throw new IllegalArgumentException("Column must be 0 or greater!");
+        double[] array = new double[rowCount()];
+        for (int i = 0; i < rowCount(); i++)
+            array[i] = this.array[i][column];
+        return array;
+    }
+
+    public Matrix getRowMatrix(int row) {
         if (row < 0)
             throw new IllegalArgumentException("Column must be 0 or greater!");
         double[][] array = new double[1][columnCount()];
         for (int i = 0; i < columnCount(); i++)
             array[0][i] = this.array[row][i];
         return new Matrix(array);
+    }
+
+    public double[] getRow(int row) {
+        if (row < 0)
+            throw new IllegalArgumentException("Column must be 0 or greater!");
+        double[] array = new double[columnCount()];
+        for (int i = 0; i < columnCount(); i++)
+            array[i] = this.array[row][i];
+        return array;
     }
 
     public Matrix subMatrix(int offsetRow, int offsetColumn, int rows, int columns) {
@@ -192,8 +286,16 @@ public class Matrix {
         return array[row][column];
     }
 
-    public double[][] getArrayClone() {
-        return array.clone();
+    public void setElement(int row, int column, double value) {
+        array[row][column] = value;
+    }
+
+    public Matrix deepClone() {
+        double[][] array = new double[rowCount()][columnCount()];
+        for (int i = 0; i < rowCount(); i++)
+            for (int j = 0; j < columnCount(); j++)
+                array[i][j] = this.array[i][j];
+        return new Matrix(array);
     }
 
     public int columnCount() {
@@ -209,21 +311,45 @@ public class Matrix {
     }
 
     public static boolean equals(Matrix matrixA, Matrix matrixB) {
-        return Arrays.deepEquals(matrixA.array, matrixB.array);
+        exceptionArithmetic(matrixA, matrixB);
+        for (int i = 0; i < matrixA.rowCount(); i++)
+            for (int j = 0; j < matrixA.columnCount(); j++)
+                if (matrixA.array[i][j] != matrixB.array[i][j])
+                    return false;
+        return true;
     }
 
     // --------------------Console Display--------------------------- //
 
-    private String doubleString(double value, int space, boolean negativeSpace) {
+    private static int decimalPrecision = 4;
+    private static int decimalPoints = 4;
+    private static boolean isFraction = false;
+    private static boolean isWhole = false;
+
+    public static void setDisplayAttributes(boolean isFraction, boolean isWhole, int decimalPrecision, int decimalPoints) {
+        Matrix.decimalPoints = decimalPoints;
+        Matrix.decimalPrecision = decimalPrecision;
+        Matrix.isFraction = isFraction;
+        Matrix.isWhole = isWhole;
+    }
+
+    private String doubleString(double value, int space, boolean negativeSpace, boolean isFraction) {
         var builder = new StringBuilder();
         if (negativeSpace && value >= 0)
             builder.append(" ");
         if (value % 1 == 0)
-            builder.append((int) value);
-        else
+            builder.append((long) value);
+        else if (isFraction) {
+            var fraction = MyFunctions.reducedFraction(value, decimalPrecision, isWhole);
+            if (fraction.numerator() % fraction.denominator() == 0)
+                builder.append(fraction.numerator() * (fraction.isNegative() ? -1 : 1) / fraction.denominator());
+            else if (isWhole)
+                builder.append(fraction.whole()*(fraction.isNegative() ? -1 : 1)).append(" ").append(fraction.numerator()).append("/").append(fraction.denominator());
+            else
+                builder.append(fraction.numerator() * (fraction.isNegative() ? -1 : 1)).append("/").append(fraction.denominator());
+        } else
             builder.append(value);
-        int size = builder.length();
-        for (int i = size; i < space; ++i)
+        for (int i = builder.length(); i < space; ++i)
             builder.append(" ");
         return builder.substring(0, space);
     }
@@ -243,9 +369,9 @@ public class Matrix {
         }
         var builder = new StringBuilder();
         for (double[] data : array) {
-            builder.append("[  ");
+            builder.append("[ ");
             for (double value : data)
-                builder.append(doubleString(value, maxDecimal + 2 + Math.min(maxFraction - 2, 4), negativeSpace)).append(" ");
+                builder.append(doubleString(value, maxDecimal + 2 + Math.min(maxFraction - 2, decimalPoints), negativeSpace, isFraction)).append(" ");
             builder.append("]\n");
         }
         return builder.toString();

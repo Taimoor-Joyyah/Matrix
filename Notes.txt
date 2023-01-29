@@ -10,18 +10,20 @@
 +GenerateIdentity
 +IsSquareMatrix
 +IsZeroMatrix
++isSingularMatrix
++isIdentityMatrix
++isUpperTriangleMatrix
++isLowerTriangleMatrix
++isDiagonalMatrix
++isScalarMatrix
++isSymmetricMatrix
++isSkewSymmetricMatrix
++isEchelonForm
++isReducedEchelonForm
 +equal()
 +toString()
 
 LATER
-Row/Column Echelon
-Reduced Row/Column Echelon
-Augment matrix (Ax=b)(A|b)
-isIdentity
-isUpperTriangle
-isLowerTriangle
-isDiagonalMatrix
-isScalarMatrix
-isSymmetric
-isSkewSymmetric
-isSingular
++Row/Column Echelon
++Reduced Row/Column Echelon
++Augment matrix (Ax=b)(A|b)
