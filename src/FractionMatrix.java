@@ -1,14 +1,14 @@
 import java.util.Arrays;
 
-public class Matrix {
-    private final double[][] array;
+public class FractionMatrix {
+    private final Fraction[][] array;
 
-    public Matrix(double[][] array) {
+    public FractionMatrix(Fraction[][] array) {
         if (array == null)
             throw new IllegalArgumentException("Array must not be null!");
         if (array.length == 0 || array[0].length == 0)
             throw new IllegalArgumentException("Rows must not be empty!");
-        for (double[] row : array) {
+        for (Fraction[] row : array) {
             if (row.length != array[0].length)
                 throw new IllegalArgumentException("Every row must have equal columns!");
         }
@@ -18,101 +18,103 @@ public class Matrix {
 
     // --------------------Operations--------------------------- //
 
-    public static Matrix addition(Matrix left, Matrix right) {
+    public static FractionMatrix addition(FractionMatrix left, FractionMatrix right) {
         exceptionArithmetic(left, right);
-        double[][] array = new double[left.rowCount()][left.columnCount()];
+        Fraction[][] array = new Fraction[left.rowCount()][left.columnCount()];
         for (int i = 0; i < array.length; i++)
             for (int j = 0; j < array[0].length; j++)
-                array[i][j] = left.array[i][j] + right.array[i][j];
-        return new Matrix(array);
+                array[i][j] = Fraction.addition(left.array[i][j], right.array[i][j]);
+        return new FractionMatrix(array);
     }
 
-    public static Matrix subtraction(Matrix left, Matrix right) {
-        return addition(left, scalarProduct(right, -1));
+    public static FractionMatrix subtraction(FractionMatrix left, FractionMatrix right) {
+        return addition(left, scalarProduct(right, new Fraction(-1,1)));
     }
 
-    public static Matrix scalarProduct(Matrix matrix, double scale) {
+    public static FractionMatrix scalarProduct(FractionMatrix matrix, Fraction scale) {
         exceptionNull(matrix);
-        double[][] array = new double[matrix.rowCount()][matrix.columnCount()];
+        Fraction[][] array = new Fraction[matrix.rowCount()][matrix.columnCount()];
         for (int i = 0; i < array.length; i++)
             for (int j = 0; j < array[0].length; j++)
-                array[i][j] = matrix.array[i][j] * scale;
-        return new Matrix(array);
+                array[i][j] = Fraction.multiplication(matrix.array[i][j], scale);
+        return new FractionMatrix(array);
     }
 
-    public static double dotProduct(Matrix left, Matrix right) {
+    public static Fraction dotProduct(FractionMatrix left, FractionMatrix right) {
         exceptionArithmetic(left, right);
-        double product = 0;
+        Fraction product = new Fraction(0,0);
         for (int i = 0; i < left.rowCount(); i++)
             for (int j = 0; j < left.columnCount(); j++)
-                product += left.array[i][j] * right.array[i][j];
+                product = Fraction.addition(product, Fraction.multiplication(left.array[i][j], right.array[i][j]));
         return product;
     }
 
-    public static Matrix matrixProduct(Matrix left, Matrix right) {
+    public static FractionMatrix matrixProduct(FractionMatrix left, FractionMatrix right) {
         exceptionNull(left);
         exceptionNull(right);
         if (left.columnCount() != right.rowCount())
             throw new IllegalArgumentException("Matrices are invalid for multiplication!");
-        double[][] array = new double[left.rowCount()][right.columnCount()];
+        Fraction[][] array = new Fraction[left.rowCount()][right.columnCount()];
         for (int i = 0; i < array.length; i++)
             for (int j = 0; j < array[0].length; j++)
                 array[i][j] = dotProduct(left.getRowMatrix(i).transpose(), right.getColumnMatrix(j));
-        return new Matrix(array);
+        return new FractionMatrix(array);
     }
 
-    public Matrix transpose() {
-        double[][] array = new double[columnCount()][rowCount()];
+    public FractionMatrix transpose() {
+        Fraction[][] array = new Fraction[columnCount()][rowCount()];
         for (int i = 0; i < array.length; i++)
             for (int j = 0; j < array[0].length; j++)
                 array[i][j] = this.array[j][i];
-        return new Matrix(array);
+        return new FractionMatrix(array);
     }
 
-    public double determinant() {
+    public Fraction determinant() {
         if (!isSquareMatrix())
             throw new IllegalArgumentException("Square matrix is required for Determinant!");
         if (rowCount() == 1)
             return array[0][0];
-        double result = 0;
+        Fraction result = new Fraction(0,1);
         for (int i = 0; i < array[0].length; i++)
-            result += array[0][i] * cofactor(0, i);
+            result = Fraction.addition(result, Fraction.multiplication(array[0][i], cofactor(0, i)));
         return result;
     }
 
-    public Matrix adjoint() {
+    public FractionMatrix adjoint() {
         if (!isSquareMatrix())
             throw new IllegalArgumentException("Square matrix is required for Adjoint!");
-        double[][] array = new double[rowCount()][rowCount()];
+        Fraction[][] array = new Fraction[rowCount()][rowCount()];
         for (int i = 0; i < rowCount(); i++)
             for (int j = 0; j < rowCount(); j++)
                 array[i][j] = cofactor(i, j);
-        return new Matrix(array).transpose();
+        return new FractionMatrix(array).transpose();
     }
 
-    public Matrix inverse() {
+    public FractionMatrix inverse() {
         if (!isSquareMatrix())
             throw new IllegalArgumentException("Square matrix is required for Inverse!");
-        double determinant = determinant();
-        if (determinant == 0)
+        Fraction determinant = determinant();
+        if (determinant.value() == 0)
             throw new IllegalArgumentException("Singular matrix are not invertible!");
-        return scalarProduct(adjoint(), 1 / determinant);
+        return scalarProduct(adjoint(), determinant.inverse());
     }
 
-    private double cofactor(int row, int column) {
-        return cofactorMatrix(row, column).determinant() * ((row + column) % 2 == 0 ? 1 : -1);
+    private Fraction cofactor(int row, int column) {
+        return Fraction.scalarProduct(cofactorMatrix(row, column).determinant(), ((row + column) % 2 == 0 ? 1 : -1));
     }
 
-    private Matrix cofactorMatrix(int row, int column) {
-        double[][] array = new double[rowCount() - 1][columnCount() - 1];
+    private FractionMatrix cofactorMatrix(int row, int column) {
+        Fraction[][] array = new Fraction[rowCount() - 1][columnCount() - 1];
         for (int i = 0; i < rowCount() - 1; i++)
             for (int j = 0; j < columnCount() - 1; j++)
                 array[i][j] = this.array[i < row ? i : i + 1][j < column ? j : j + 1];
-        return new Matrix(array);
+        return new FractionMatrix(array);
     }
 
-    public Matrix getReducedRowEchelon() {
-        return new AugmentedMatrix(this).reducedEchelonForm().getLeft();
+    public FractionMatrix getReducedRowEchelon() {
+        var augmented = new FractionAugmentedMatrix(this);
+        augmented.reducedEchelonForm();
+        return augmented.getLeft();
     }
 
     // --------------------Checking Operations--------------------------- //
@@ -124,13 +126,13 @@ public class Matrix {
     public boolean isZeroMatrix() {
         for (int i = 0; i < rowCount(); i++)
             for (int j = 0; j < columnCount(); j++)
-                if (array[i][j] != 0)
+                if (!array[i][j].isZero())
                     return false;
         return true;
     }
 
     public boolean isSingularMatrix() {
-        return determinant() == 0;
+        return determinant().isZero();
     }
 
     public boolean isUpperTriangleMatrix() {
@@ -138,7 +140,7 @@ public class Matrix {
             return false;
         for (int i = 1; i < rowCount(); i++)
             for (int j = 0; j < i; j++)
-                if (array[i][j] != 0)
+                if (!array[i][j].isZero())
                     return false;
         return true;
     }
@@ -148,7 +150,7 @@ public class Matrix {
             return false;
         for (int i = 0; i < rowCount(); i++)
             for (int j = i + 1; j < columnCount(); j++)
-                if (array[i][j] != 0)
+                if (!array[i][j].isZero())
                     return false;
         return true;
     }
@@ -161,7 +163,7 @@ public class Matrix {
         if (!isDiagonalMatrix())
             return false;
         for (int i = 0; i < rowCount(); i++)
-            if (array[i][i] != 1)
+            if (array[i][i].value() != 1)
                 return false;
         return true;
     }
@@ -180,7 +182,7 @@ public class Matrix {
     }
 
     public boolean isSkewSymmetricMatrix() {
-        return equals(this, scalarProduct(transpose(), -1));
+        return equals(this, scalarProduct(transpose(), new Fraction(-1,1)));
     }
 
     public boolean isReducedEchelonForm() {
@@ -188,43 +190,14 @@ public class Matrix {
         Arrays.fill(leadingRows, -1);
         for (int i = 0; i < rowCount(); i++) {
             for (int j = 0; j < columnCount(); j++) {
-                if (array[i][j] == 1)
+                if (array[i][j].value() == 1)
                     if (i == 0 || (leadingRows[i - 1] > -1 && leadingRows[i - 1] < j)) {
                         leadingRows[i] = j;
                         break;
                     } else
                         return false;
-                else if (array[i][j] != 0)
+                else if (!array[i][j].isZero())
                     return false;
-            }
-        }
-        return true;
-    }
-
-    public boolean isFullyReducedEchelonForm() {
-        int[] leadingRows = new int[rowCount()];
-        Arrays.fill(leadingRows, -1);
-        for (int i = 0; i < rowCount(); i++) {
-            for (int j = 0; j < columnCount(); j++) {
-                if (array[i][j] == 1)
-                    if (i == 0 || (leadingRows[i - 1] > -1 && leadingRows[i - 1] < j)) {
-                        leadingRows[i] = j;
-                        break;
-                    } else
-                        return false;
-                else if (array[i][j] != 0)
-                    return false;
-            }
-        }
-        for (int column : leadingRows) {
-            if (column != -1) {
-                boolean zero = true;
-                for (int i = 0; i < rowCount(); i++) {
-                    if (array[i][column] != 0) {
-                        if (zero) zero = false;
-                        else return false;
-                    }
-                }
             }
         }
         return true;
@@ -236,48 +209,48 @@ public class Matrix {
 
     // --------------------Generation--------------------------- //
 
-    public static Matrix combineMatrix(Matrix... matrices) {
-        for (Matrix matrix : matrices)
+    public static FractionMatrix combineMatrix(FractionMatrix... matrices) {
+        for (FractionMatrix matrix : matrices)
             exceptionArithmetic(matrices[0], matrix);
         int rows = matrices[0].rowCount();
         int columns = matrices[0].columnCount();
-        double[][] array = new double[rows * columns][matrices.length];
+        Fraction[][] array = new Fraction[rows * columns][matrices.length];
 
         for (int i = 0; i < matrices.length; i++)
             for (int j = 0; j < rows; j++)
                 for (int k = 0; k < columns; k++)
                     array[j * columns + k][i] = matrices[i].array[j][k];
-        return new Matrix(array);
+        return new FractionMatrix(array);
     }
 
-    public static Matrix generateIdentityMatrix(int n) {
+    public static FractionMatrix generateIdentityMatrix(int n) {
         if (n < 1)
             throw new IllegalArgumentException("n must be 1 or greater value!");
-        double[][] array = new double[n][n];
+        Fraction[][] array = new Fraction[n][n];
         for (int i = 0; i < n; i++)
-            array[i][i] = 1;
-        return new Matrix(array);
+            array[i][i] = new Fraction(1,1);
+        return new FractionMatrix(array);
     }
 
-    public static Matrix generateZeroMatrix(int rows, int columns) {
+    public static FractionMatrix generateZeroMatrix(int rows, int columns) {
         if (rows < 1 || columns < 1)
             throw new IllegalArgumentException("n must be 1 or greater value!");
-        return new Matrix(new double[rows][columns]);
+        return new FractionMatrix(new Fraction[rows][columns]);
     }
 
     // --------------------Exceptions--------------------------- //
 
-    private static void exceptionNull(Matrix matrix) {
+    private static void exceptionNull(FractionMatrix matrix) {
         if (matrix == null)
             throw new IllegalArgumentException("Matrix must not be null!");
     }
 
-    private static void exceptionUnequalStructure(Matrix matrixA, Matrix matrixB) {
+    private static void exceptionUnequalStructure(FractionMatrix matrixA, FractionMatrix matrixB) {
         if (matrixB.rowCount() != matrixA.rowCount() || matrixB.columnCount() != matrixA.columnCount())
             throw new IllegalArgumentException("Rows and columns of both matrices must be equal!");
     }
 
-    private static void exceptionArithmetic(Matrix left, Matrix right) {
+    private static void exceptionArithmetic(FractionMatrix left, FractionMatrix right) {
         exceptionNull(right);
         exceptionNull(left);
         exceptionUnequalStructure(right, left);
@@ -285,43 +258,43 @@ public class Matrix {
 
     // --------------------Get Attributes/Values--------------------------- //
 
-    public Matrix getColumnMatrix(int column) {
+    public FractionMatrix getColumnMatrix(int column) {
         if (column < 0)
             throw new IllegalArgumentException("Column must be 0 or greater!");
-        double[][] array = new double[rowCount()][1];
+        Fraction[][] array = new Fraction[rowCount()][1];
         for (int i = 0; i < rowCount(); i++)
             array[i][0] = this.array[i][column];
-        return new Matrix(array);
+        return new FractionMatrix(array);
     }
 
-    public double[] getColumn(int column) {
+    public Fraction[] getColumn(int column) {
         if (column < 0)
             throw new IllegalArgumentException("Column must be 0 or greater!");
-        double[] array = new double[rowCount()];
+        Fraction[] array = new Fraction[rowCount()];
         for (int i = 0; i < rowCount(); i++)
             array[i] = this.array[i][column];
         return array;
     }
 
-    public Matrix getRowMatrix(int row) {
+    public FractionMatrix getRowMatrix(int row) {
         if (row < 0)
             throw new IllegalArgumentException("Column must be 0 or greater!");
-        double[][] array = new double[1][columnCount()];
+        Fraction[][] array = new Fraction[1][columnCount()];
         for (int i = 0; i < columnCount(); i++)
             array[0][i] = this.array[row][i];
-        return new Matrix(array);
+        return new FractionMatrix(array);
     }
 
-    public double[] getRow(int row) {
+    public Fraction[] getRow(int row) {
         if (row < 0)
             throw new IllegalArgumentException("Column must be 0 or greater!");
-        double[] array = new double[columnCount()];
+        Fraction[] array = new Fraction[columnCount()];
         for (int i = 0; i < columnCount(); i++)
             array[i] = this.array[row][i];
         return array;
     }
 
-    public Matrix subMatrix(int offsetRow, int offsetColumn, int rows, int columns) {
+    public FractionMatrix subMatrix(int offsetRow, int offsetColumn, int rows, int columns) {
         if (offsetRow < 0 || offsetColumn < 0)
             throw new IllegalArgumentException("Invalid offsets!");
         if (rows < 1 || columns < 1)
@@ -329,27 +302,27 @@ public class Matrix {
         if (offsetRow + rows > rowCount() || offsetColumn + columns > columnCount())
             throw new IllegalArgumentException("Out of range!");
 
-        double[][] array = new double[rows][columns];
+        Fraction[][] array = new Fraction[rows][columns];
         for (int i = 0; i < rows; i++)
             for (int j = 0; j < columns; j++)
                 array[i][j] = this.array[offsetRow + i][offsetColumn + j];
-        return new Matrix(array);
+        return new FractionMatrix(array);
     }
 
-    public double getElement(int row, int column) {
+    public Fraction getElement(int row, int column) {
         return array[row][column];
     }
 
-    public void setElement(int row, int column, double value) {
+    public void setElement(int row, int column, Fraction value) {
         array[row][column] = value;
     }
 
-    public Matrix deepClone() {
-        double[][] array = new double[rowCount()][columnCount()];
+    public FractionMatrix deepClone() {
+        Fraction[][] array = new Fraction[rowCount()][columnCount()];
         for (int i = 0; i < rowCount(); i++)
             for (int j = 0; j < columnCount(); j++)
                 array[i][j] = this.array[i][j];
-        return new Matrix(array);
+        return new FractionMatrix(array);
     }
 
     public int columnCount() {
@@ -368,11 +341,11 @@ public class Matrix {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Matrix matrix = (Matrix) o;
+        FractionMatrix matrix = (FractionMatrix) o;
         return Arrays.equals(array, matrix.array);
     }
 
-    public static boolean equals(Matrix matrixA, Matrix matrixB) {
+    public static boolean equals(FractionMatrix matrixA, FractionMatrix matrixB) {
         exceptionArithmetic(matrixA, matrixB);
         for (int i = 0; i < matrixA.rowCount(); i++)
             for (int j = 0; j < matrixA.columnCount(); j++)
@@ -389,51 +362,19 @@ public class Matrix {
     private static boolean isWhole = false;
 
     public static void setDisplayAttributes(boolean isFraction, boolean isWhole, int decimalPrecision, int decimalPoints) {
-        Matrix.decimalPoints = decimalPoints;
-        Matrix.decimalPrecision = decimalPrecision;
-        Matrix.isFraction = isFraction;
-        Matrix.isWhole = isWhole;
-    }
-
-    private String doubleString(double value, int space, boolean negativeSpace, boolean isFraction) {
-        var builder = new StringBuilder();
-        if (negativeSpace && value >= 0)
-            builder.append(" ");
-        if (value % 1 == 0)
-            builder.append((long) value);
-        else if (isFraction) {
-            var fraction = Fraction.reducedFraction(value, decimalPrecision);
-            if (fraction.numerator() % fraction.denominator() == 0)
-                builder.append(fraction.numerator() * (fraction.isNegative() ? -1 : 1) / fraction.denominator());
-            else if (isWhole)
-                builder.append(fraction.whole() * (fraction.isNegative() ? -1 : 1)).append(" ").append(fraction.numerator()).append("/").append(fraction.denominator());
-            else
-                builder.append(fraction.numerator() * (fraction.isNegative() ? -1 : 1)).append("/").append(fraction.denominator());
-        } else
-            builder.append(value);
-        for (int i = builder.length(); i < space; ++i)
-            builder.append(" ");
-        return builder.substring(0, space);
+        FractionMatrix.decimalPoints = decimalPoints;
+        FractionMatrix.decimalPrecision = decimalPrecision;
+        FractionMatrix.isFraction = isFraction;
+        FractionMatrix.isWhole = isWhole;
     }
 
     @Override
     public String toString() {
-        int maxDecimal = 0;
-        int maxFraction = 0;
-        boolean negativeSpace = false;
-        for (double[] row : array) {
-            for (double value : row) {
-                if (value < 0)
-                    negativeSpace = true;
-                maxDecimal = Math.max(maxDecimal, String.valueOf((int) value).length());
-                maxFraction = Math.max(maxFraction, String.valueOf(value - (int) value).length());
-            }
-        }
         var builder = new StringBuilder();
-        for (double[] data : array) {
+        for (Fraction[] data : array) {
             builder.append("[ ");
-            for (double value : data)
-                builder.append(doubleString(value, maxDecimal + 2 + Math.min(maxFraction - 2, decimalPoints), negativeSpace, isFraction)).append(" ");
+            for (Fraction fraction : data)
+                builder.append(fraction).append(" ");
             builder.append("]\n");
         }
         return builder.toString();

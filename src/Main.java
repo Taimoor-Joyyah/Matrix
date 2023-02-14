@@ -50,11 +50,36 @@ public class Main {
                 {-7},
         });
 
+        var matrixfA = new FractionMatrix(new Fraction[][]{
+                {new Fraction(3,4),new Fraction(6,4),new Fraction(7,8)},
+                {new Fraction(4,7),new Fraction(-3,1),new Fraction(2,1)},
+                {new Fraction(2,5),new Fraction(0,1),new Fraction(-3,2)}
+        });
+
+//        System.out.println(matrixF.isFullyReducedEchelonForm());
+//        var rr = matrixF.getReducedRowEchelon();
+//        System.out.println(rr);
+//        System.out.println(rr.isReducedEchelonForm());
+//        System.out.println(rr.isFullyReducedEchelonForm());
+
+//        System.out.println(matrixfA);
+//        System.out.println(matrixfA.inverse());
+//        System.out.println(matrixfA.inverse().inverse());
+
+
+
         Matrix.setDisplayAttributes(false, true, 8, 12);
 
-        AugmentedMatrix matrix = new AugmentedMatrix(matrixE, matrixH);
+//        AugmentedMatrix system = new AugmentedMatrix(matrixE, matrixH);
 //        System.out.println(AugmentedMatrix.solveX(matrixE, matrixH));
-        matrix.reducedEchelonForm();
-        System.out.println(matrix);
+//        system.reducedEchelonForm();
+//        System.out.println(system);
+        System.out.println(Vector.isLinearlyCombination(
+                new Vector(-1,2,3),
+
+                new Vector(4,2,-3),
+                new Vector(2,1,-2),
+                new Vector(-2,-1,0)
+        ));
     }
 }
